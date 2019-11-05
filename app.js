@@ -46,7 +46,7 @@ mongoose
   .catch(err => console.log(err));
 
 //set public folder
-app.use(express.static(path.join(__dirname, 'public')))
+
 
 //set view engine
 app.use(expressLayouts);
@@ -117,5 +117,5 @@ app.use('/admins', require('./routes/admins'))
 // app.use('/admins/establishmentAdmin', require('./routes/establishmentAdmin'))
 
 const PORT = process.env.PORT || 3000;
-
+// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 app.listen(PORT, console.log(`Server started on port ${PORT}`));

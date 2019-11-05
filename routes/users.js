@@ -2,6 +2,17 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
+const mongoose = require('mongoose');
+//---------------------------------------------------------------------------
+const bodyParser = require("body-parser");
+
+const sendotp=require("sendotp");
+const sendOtp=new sendotp("288851AdWYGYurDi5d4c712e",'Otp for your order is {{otp}}, please do not share it with anybody'); 
+var phnnumber;
+
+
+//-------------------------------------------------------------------------------
+
 // Load User model
 const User = require('../models/user');
 
@@ -140,7 +151,10 @@ router.post('/register', (req, res) => {
           auth: {
             user: "tedxnits2019@gmail.com",
             pass: "tedx@2019"
-          }
+          },
+          tls: {
+            rejectUnauthorized: false
+        }
         })
         var link="http://"+req.get('host')+"/users/verify?id="+rand + '&email=' + newUser.email;
         console.log("THe link is :",link)
@@ -249,15 +263,93 @@ router.post('/login', function(req, res, next) {
   //   }
   // captcha code//
     // res.json({"responseSuccess" : "Sucess"});
+
+
+//OTP Verification
+
+
+
+
     passport.authenticate('local', {
-      successRedirect: '/instructions',
-      failureRedirect: '/users/login',
+      successRedirect:   '/users/form',        //'/instructions',
+      failureRedirect:  '/users/login',
       failureFlash: true
     })(req, res, next);
     // captcha code//
   // });
   // captcha code//
 });
+//---------------------------------------------------------------------------------------------
+
+
+
+// sendOtp.send(contactNumber, senderId, otp, callback); //otp is optional if not sent it'll be generated automatically
+// sendOtp.retry(contactNumber, retryVoice, callback);
+//sendOtp.verify(contactNumber, otpToVerify, callback);
+
+const formSchema = mongoose.Schema({
+	number: String,
+	Created: {type: Date, default: Date.now()}
+});
+
+const form = mongoose.model("form", formSchema);
+
+
+
+router.get("/form",function(req,res){
+	res.render("from");
+});
+
+router.post("/verifyform",function(req,res){
+	
+	 phnnumber= req.body.form["number"];
+
+	
+	form.create(req.body.form,function(err,data){
+		if(err)
+			{
+				console.log(err);
+			}
+		else
+			{				
+				sendOtp.send(phnnumber, "nitsac", function(error,data){
+					
+							console.log(data);
+							res.render("verifyform");
+						
+				}); 
+				
+			}
+	});		
+				//otp is optional if not sent it'll be generated automatically
+});
+
+router.post("/success",function(req,res){
+	
+	const otp  = req.body.otp;
+	console.log(otp);
+	sendOtp.verify(phnnumber, otp, function (error, data) {
+  console.log(data); // data object with keys 'message' and 'type'
+  if(data.type == 'success') 
+  {
+	  console.log('OTP verified successfully');
+	  res.redirect("/instructions");
+  }
+  else
+	  {
+		  console.log("error");
+		  res.redirect("/users/form");
+	  }
+});
+})
+
+//sendOtp.verify(contactNumber, otpToVerify, callbacck)
+
+
+
+//---------------------------------------------------------------------------
+
+
 
 //forgot password
 router.get('/forgot', (req, res) => {
@@ -285,7 +377,7 @@ router.post('/forgot', (req, res) => {
   }
 
 
-  transporter.sendMail(HelperOptions, (error, info) => {
+  transporter.sendMail(HelperOptions, (error, info) =>{
     if (error) {
       console.log(error)
       res.render('login',{
